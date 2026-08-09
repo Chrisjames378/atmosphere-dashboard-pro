@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Coins, ShieldCheck, ArrowUpRight, ArrowDownLeft, TreePine, Award, Filter, DollarSign, ExternalLink, CheckCircle, Sparkles } from 'lucide-react';
 import { OFFSET_PROJECTS } from '../data/mockData';
 import { CarbonTransaction, OffsetProject } from '../types';
+import { PaymentGateway } from './PaymentGateway';
 
 interface CarbonExchangeProps {
   creditsBalance: number;
@@ -120,6 +121,15 @@ export const CarbonExchange: React.FC<CarbonExchangeProps> = ({
           <Award className="w-5 h-5 text-emerald-400 shrink-0" />
         </div>
       )}
+
+      {/* Instant Payment Gateway (PayPal Checkout Flow) */}
+      <PaymentGateway
+        onAddCredits={onAddCredits}
+        onSuccess={(added, txId) => {
+          setCertificateSuccess(`PayPal Payment Successful! Added +${added} Carbon Credits (Ref: ${txId}).`);
+          setTimeout(() => setCertificateSuccess(null), 6000);
+        }}
+      />
 
       {/* Verified Offset Projects Catalog */}
       <div className="space-y-4">

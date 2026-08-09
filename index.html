@@ -6,23 +6,46 @@
     <title>Atmosphere Dashboard Pro</title>
     <meta name="theme-color" content="#0f172a" />
     <script>
-      // Suppress injected browser extension errors (MetaMask, crypto wallets, Vite WS)
-      window.addEventListener('unhandledrejection', function(e) {
-        var msg = String(e && e.reason ? (e.reason.message || e.reason) : '');
-        if (/MetaMask|ethereum|web3|WebSocket|websocket/i.test(msg)) {
-          e.preventDefault();
-          e.stopPropagation();
-          return false;
+      // Global suppression for injected browser extension & WebSocket rejections
+      (function() {
+        function isWalletOrExtensionError(err) {
+          if (!err) return false;
+          var str = '';
+          try {
+            if (typeof err === 'string') str = err;
+            else if (err.message) str = err.message;
+            else if (err.reason) str = typeof err.reason === 'string' ? err.reason : (err.reason.message || String(err.reason));
+            else str = String(err) + ' ' + JSON.stringify(err);
+          } catch (e) {
+            str = String(err);
+          }
+          return /MetaMask|ethereum|web3|WebSocket|websocket|restoring session|Failed to connect/i.test(str);
         }
-      }, true);
-      window.addEventListener('error', function(e) {
-        var msg = String(e && e.message ? e.message : '');
-        if (/MetaMask|ethereum|web3|WebSocket|websocket/i.test(msg)) {
-          e.preventDefault();
-          e.stopPropagation();
-          return false;
-        }
-      }, true);
+
+        window.addEventListener('unhandledrejection', function(event) {
+          if (isWalletOrExtensionError(event.reason) || isWalletOrExtensionError(event)) {
+            event.preventDefault();
+            if (event.stopPropagation) event.stopPropagation();
+            if (event.stopImmediatePropagation) event.stopImmediatePropagation();
+            return false;
+          }
+        }, true);
+
+        window.addEventListener('error', function(event) {
+          if (isWalletOrExtensionError(event.message) || isWalletOrExtensionError(event.error) || isWalletOrExtensionError(event)) {
+            event.preventDefault();
+            if (event.stopPropagation) event.stopPropagation();
+            if (event.stopImmediatePropagation) event.stopImmediatePropagation();
+            return false;
+          }
+        }, true);
+
+        window.onunhandledrejection = function(event) {
+          if (isWalletOrExtensionError(event.reason) || isWalletOrExtensionError(event)) {
+            return true;
+          }
+        };
+      })();
     </script>
   </head>
   <body>
