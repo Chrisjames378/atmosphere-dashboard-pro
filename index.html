@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Atmosphere Dashboard Pro</title>
+    <meta name="theme-color" content="#0f172a" />
+    <script>
+      // Suppress injected browser extension errors (MetaMask, crypto wallets, Vite WS)
+      window.addEventListener('unhandledrejection', function(e) {
+        var msg = String(e && e.reason ? (e.reason.message || e.reason) : '');
+        if (/MetaMask|ethereum|web3|WebSocket|websocket/i.test(msg)) {
+          e.preventDefault();
+          e.stopPropagation();
+          return false;
+        }
+      }, true);
+      window.addEventListener('error', function(e) {
+        var msg = String(e && e.message ? e.message : '');
+        if (/MetaMask|ethereum|web3|WebSocket|websocket/i.test(msg)) {
+          e.preventDefault();
+          e.stopPropagation();
+          return false;
+        }
+      }, true);
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
+

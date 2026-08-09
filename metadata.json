@@ -1,0 +1,6 @@
+{
+  "name": "Atmosphere Dashboard Pro",
+  "description": "Next-gen environmental, satellite, greenhouse gas & carbon telemetry platform with real-time station data, interactive radar map, eco-action credit logger, carbon marketplace, and AI climate advisor.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
