@@ -6,9 +6,9 @@
     <title>Atmosphere Dashboard Pro</title>
     <meta name="theme-color" content="#0f172a" />
     <script>
-      // Global suppression for injected browser extension & WebSocket rejections
+      // Complete suppression for injected browser extension & WebSocket rejections
       (function() {
-        function isWalletOrExtensionError(err) {
+        function isSuppressedError(err) {
           if (!err) return false;
           var str = '';
           try {
@@ -22,8 +22,9 @@
           return /MetaMask|ethereum|web3|WebSocket|websocket|restoring session|Failed to connect/i.test(str);
         }
 
+        // Intercept global error events
         window.addEventListener('unhandledrejection', function(event) {
-          if (isWalletOrExtensionError(event.reason) || isWalletOrExtensionError(event)) {
+          if (isSuppressedError(event.reason) || isSuppressedError(event)) {
             event.preventDefault();
             if (event.stopPropagation) event.stopPropagation();
             if (event.stopImmediatePropagation) event.stopImmediatePropagation();
@@ -32,7 +33,7 @@
         }, true);
 
         window.addEventListener('error', function(event) {
-          if (isWalletOrExtensionError(event.message) || isWalletOrExtensionError(event.error) || isWalletOrExtensionError(event)) {
+          if (isSuppressedError(event.message) || isSuppressedError(event.error) || isSuppressedError(event)) {
             event.preventDefault();
             if (event.stopPropagation) event.stopPropagation();
             if (event.stopImmediatePropagation) event.stopImmediatePropagation();
@@ -41,9 +42,24 @@
         }, true);
 
         window.onunhandledrejection = function(event) {
-          if (isWalletOrExtensionError(event.reason) || isWalletOrExtensionError(event)) {
+          if (isSuppressedError(event.reason) || isSuppressedError(event)) {
             return true;
           }
+        };
+
+        // Suppress console.error & console.warn for extension/HMR noise
+        var origConsoleError = console.error;
+        console.error = function() {
+          var args = Array.prototype.slice.call(arguments);
+          if (args.some(isSuppressedError)) return;
+          origConsoleError.apply(console, args);
+        };
+
+        var origConsoleWarn = console.warn;
+        console.warn = function() {
+          var args = Array.prototype.slice.call(arguments);
+          if (args.some(isSuppressedError)) return;
+          origConsoleWarn.apply(console, args);
         };
       })();
     </script>
