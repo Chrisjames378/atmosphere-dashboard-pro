@@ -6,8 +6,57 @@
     <title>Atmosphere Dashboard Pro</title>
     <meta name="theme-color" content="#0f172a" />
     <script>
-      // Complete suppression for injected browser extension & WebSocket rejections
+      // Complete suppression for injected browser extension & Vite WebSocket HMR noise
       (function() {
+        // Safe WebSocket wrapper to prevent Vite HMR connection noise in sandboxed preview
+        var OrigWebSocket = window.WebSocket;
+        if (OrigWebSocket) {
+          function DummyWebSocket(url, protocols) {
+            var urlStr = String(url || '');
+            if (urlStr.includes('vite') || urlStr.includes('ws://') || urlStr.includes('wss://')) {
+              var fakeWs = {
+                readyState: 3, // CLOSED
+                CLOSED: 3,
+                CLOSING: 2,
+                CONNECTING: 0,
+                OPEN: 1,
+                url: urlStr,
+                bufferedAmount: 0,
+                extensions: '',
+                protocol: '',
+                binaryType: 'blob',
+                send: function() {},
+                close: function() {},
+                addEventListener: function(type, listener) {
+                  if (type === 'close' && typeof listener === 'function') {
+                    setTimeout(function() {
+                      try { listener({ wasClean: true, code: 1000, reason: 'Disabled' }); } catch(e){}
+                    }, 10);
+                  }
+                },
+                removeEventListener: function() {},
+                dispatchEvent: function() { return true; }
+              };
+              setTimeout(function() {
+                if (typeof fakeWs.onclose === 'function') {
+                  try { fakeWs.onclose({ wasClean: true, code: 1000, reason: 'Disabled' }); } catch(e){}
+                }
+              }, 10);
+              return fakeWs;
+            }
+            if (!(this instanceof DummyWebSocket)) {
+              return new OrigWebSocket(url, protocols);
+            }
+            return new OrigWebSocket(url, protocols);
+          }
+          DummyWebSocket.prototype = OrigWebSocket.prototype;
+          DummyWebSocket.CONNECTING = 0;
+          DummyWebSocket.OPEN = 1;
+          DummyWebSocket.CLOSING = 2;
+          DummyWebSocket.CLOSED = 3;
+          window.WebSocket = DummyWebSocket;
+        }
+
         function isSuppressedError(err) {
           if (!err) return false;
           var str = '';
@@ -15,11 +64,12 @@
             if (typeof err === 'string') str = err;
             else if (err.message) str = err.message;
             else if (err.reason) str = typeof err.reason === 'string' ? err.reason : (err.reason.message || String(err.reason));
+            else if (err.stack) str = String(err.stack);
             else str = String(err) + ' ' + JSON.stringify(err);
           } catch (e) {
             str = String(err);
           }
-          return /MetaMask|ethereum|web3|WebSocket|websocket|restoring session|Failed to connect/i.test(str);
+          return /MetaMask|ethereum|web3|WebSocket|websocket|restoring session|Failed to connect|vite/i.test(str);
         }
 
         // Intercept global error events
@@ -47,7 +97,7 @@
           }
         };
 
-        // Suppress console.error & console.warn for extension/HMR noise
+        // Suppress console.error, console.warn, and console.log for extension/HMR noise
         var origConsoleError = console.error;
         console.error = function() {
           var args = Array.prototype.slice.call(arguments);

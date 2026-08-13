@@ -65,6 +65,59 @@ ${prompt}`;
     }
   });
 
+  // API Route: AI Climate Scenario Simulator
+  app.post('/api/gemini/simulate-scenario', async (req, res) => {
+    try {
+      const { tempDelta, aqiTarget, co2Target, greenCoverage, location } = req.body;
+      const ai = getAiClient();
+
+      if (!ai) {
+        return res.json({
+          analysis: `### Climate Scenario Simulation Report for ${location || 'Selected Region'}
+- **Temperature Delta**: +${tempDelta || 1.5}°C
+- **Projected AQI Level**: ${aqiTarget || 75}
+- **Atmospheric CO₂ Target**: ${co2Target || 450} ppm
+- **Urban Canopy Coverage**: ${greenCoverage || 25}%
+
+#### Key Projections:
+1. **Urban Heat Island Intensity**: Heat wave durations projected to increase by **${((tempDelta || 1.5) * 2.2).toFixed(1)} days/year**.
+2. **Air Quality Index Risk**: Smog and particulate concentrations likely to trigger ${aqiTarget > 100 ? 'Severe Health Alerts' : 'Moderate Respiratory Sensitivity'}.
+3. **Local Ecosystem Impact**: Carbon sequestration efficiency drops by ${(100 - (greenCoverage || 25)) * 0.4}% unless urban reforestration is accelerated.
+
+#### Priority Mitigation Roadmap:
+- Deploy ${Math.round((tempDelta || 1.5) * 150)} MW of localized rooftop solar capacity.
+- Expand municipal tree canopy by ${Math.max(10, 40 - (greenCoverage || 25))}% over 36 months.
+- Fund verified carbon removal projects through the Atmosphere Carbon Exchange.`,
+        });
+      }
+
+      const systemInstruction = `You are an atmospheric climate scientist simulating climate change scenarios for specific urban regions.
+Analyze the user's scenario parameters (Temperature shift, AQI target, CO2 target ppm, green canopy coverage) and output a clean, formatted Markdown report with sections:
+1. Scenario Overview
+2. Environmental & Health Impact Assessment
+3. Economic & Energy Grid Vulnerability
+4. Priority Mitigation Action Plan`;
+
+      const contents = `Location: ${location || 'San Francisco, USA'}
+Parameters:
+- Temperature Delta: +${tempDelta}°C
+- Projected AQI: ${aqiTarget}
+- CO2 Concentration: ${co2Target} ppm
+- Urban Greenery Coverage: ${greenCoverage}%`;
+
+      const response = await ai.models.generateContent({
+        model: 'gemini-3.6-flash',
+        contents,
+        config: { systemInstruction, temperature: 0.7 },
+      });
+
+      res.json({ analysis: response.text });
+    } catch (err: any) {
+      console.error('Scenario Simulation Error:', err);
+      res.status(500).json({ error: 'Failed to simulate climate scenario' });
+    }
+  });
+
   // API Route: PayPal Gateway Status & Credentials Check
   app.get('/api/paypal/status', (req, res) => {
     const clientId = process.env.PAYPAL_CLIENT_ID || null;

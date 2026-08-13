@@ -7,6 +7,11 @@ import { SatelliteRadarMap } from './components/SatelliteRadarMap';
 import { CarbonExchange } from './components/CarbonExchange';
 import { AnalyticsView } from './components/AnalyticsView';
 import { ClimateAdvisor } from './components/ClimateAdvisor';
+import { ThresholdsModal, AlertThresholds } from './components/ThresholdsModal';
+import { AlertBanner } from './components/AlertBanner';
+import { ExportModal } from './components/ExportModal';
+import { NotificationModal } from './components/NotificationModal';
+import { DEFAULT_REMINDER_SETTINGS, ReminderSettings } from './utils/notificationService';
 import { Footer } from './components/Footer';
 import { INITIAL_TRANSACTIONS } from './data/mockData';
 import { TelemetryData, CarbonTransaction } from './types';
@@ -34,6 +39,30 @@ export default function App() {
 
   const [selectedLocation, setSelectedLocation] = useState<string>('San Francisco, USA');
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
+
+  // Live Stream auto-refresh toggle state
+  const [isLiveStream, setIsLiveStream] = useState<boolean>(false);
+
+  // Modals & Alert Thresholds State
+  const [thresholds, setThresholds] = useState<AlertThresholds>({
+    maxAqi: 50,
+    maxTemp: 30,
+    maxCo2: 430,
+    enabled: true,
+  });
+  const [isThresholdsOpen, setIsThresholdsOpen] = useState<boolean>(false);
+  const [isExportOpen, setIsExportOpen] = useState<boolean>(false);
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState<boolean>(false);
+  const [isAlertDismissed, setIsAlertDismissed] = useState<boolean>(false);
+
+  const [reminderSettings, setReminderSettings] = useState<ReminderSettings>(() => {
+    try {
+      const stored = localStorage.getItem('atmosphere_reminders');
+      return stored ? JSON.parse(stored) : DEFAULT_REMINDER_SETTINGS;
+    } catch {
+      return DEFAULT_REMINDER_SETTINGS;
+    }
+  });
 
   // Default fallback telemetry
   const [telemetry, setTelemetry] = useState<TelemetryData>({
@@ -74,7 +103,37 @@ export default function App() {
 
   useEffect(() => {
     fetchTelemetry(selectedLocation);
+    setIsAlertDismissed(false);
   }, [selectedLocation, fetchTelemetry]);
+
+  // Live Stream 5-second Auto Refresh Interval
+  useEffect(() => {
+    if (!isLiveStream) return;
+
+    const interval = setInterval(() => {
+      // Small realistic fluctuations to simulate live satellite streaming radar
+      setTelemetry((prev) => {
+        const tempDelta = (Math.random() - 0.45) * 0.4;
+        const newTemp = Math.round((prev.temperature + tempDelta) * 10) / 10;
+        const aqiDelta = Math.floor((Math.random() - 0.48) * 3);
+        const newAqi = Math.max(10, prev.aqi + aqiDelta);
+        const newCo2 = (parseFloat(prev.co2) + (Math.random() - 0.48) * 0.2).toFixed(1);
+
+        return {
+          ...prev,
+          temperature: newTemp,
+          feelsLike: Math.round((newTemp + 2) * 10) / 10,
+          aqi: newAqi,
+          aqiCategory: newAqi <= 50 ? 'Good' : newAqi <= 100 ? 'Moderate' : 'Unhealthy',
+          co2: newCo2,
+          windSpeed: Math.max(5, Math.min(45, Math.round(prev.windSpeed + (Math.random() - 0.5) * 2))),
+          lastUpdated: new Date().toISOString(),
+        };
+      });
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [isLiveStream]);
 
   // Persist credits
   const updateCredits = useCallback((newBalance: number) => {
@@ -152,7 +211,22 @@ export default function App() {
         onLocationChange={setSelectedLocation}
         onRefreshTelemetry={() => fetchTelemetry(selectedLocation)}
         isRefreshing={isRefreshing}
+        isLiveStream={isLiveStream}
+        onToggleLiveStream={() => setIsLiveStream(!isLiveStream)}
+        onOpenThresholds={() => setIsThresholdsOpen(true)}
+        onOpenExport={() => setIsExportOpen(true)}
+        onOpenNotifications={() => setIsNotificationsOpen(true)}
       />
+
+      {/* Threshold Alert Banner */}
+      {!isAlertDismissed && (
+        <AlertBanner
+          telemetry={telemetry}
+          thresholds={thresholds}
+          onOpenThresholds={() => setIsThresholdsOpen(true)}
+          onDismiss={() => setIsAlertDismissed(true)}
+        />
+      )}
 
       {/* Main View Switcher */}
       <main className="space-y-6">
@@ -202,10 +276,45 @@ export default function App() {
 
         {/* AI CLIMATE ADVISOR TAB */}
         {activeTab === 'advisor' && (
-          <ClimateAdvisor telemetry={telemetry} />
+          <ClimateAdvisor telemetry={telemetry} onAddCredits={addCredits} />
         )}
 
       </main>
+
+      {/* Threshold Settings Modal */}
+      {isThresholdsOpen && (
+        <ThresholdsModal
+          thresholds={thresholds}
+          onSave={(newT) => {
+            setThresholds(newT);
+            setIsAlertDismissed(false);
+          }}
+          onClose={() => setIsThresholdsOpen(false)}
+        />
+      )}
+
+      {/* Export & Share Modal */}
+      {isExportOpen && (
+        <ExportModal
+          telemetry={telemetry}
+          transactions={transactions}
+          creditsBalance={creditsBalance}
+          onClose={() => setIsExportOpen(false)}
+        />
+      )}
+
+      {/* Browser Reminders & Web Notifications Modal */}
+      {isNotificationsOpen && (
+        <NotificationModal
+          settings={reminderSettings}
+          onSave={(newSettings) => {
+            setReminderSettings(newSettings);
+            localStorage.setItem('atmosphere_reminders', JSON.stringify(newSettings));
+          }}
+          onClose={() => setIsNotificationsOpen(false)}
+          onAddCredits={addCredits}
+        />
+      )}
 
       {/* Footer */}
       <Footer />
@@ -213,3 +322,4 @@ export default function App() {
     </div>
   );
 }
+

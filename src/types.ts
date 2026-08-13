@@ -57,3 +57,17 @@ export interface AdvisorMessage {
   text: string;
   timestamp: string;
 }
+
+export interface CarbonCertificate {
+  certificateId: string;
+  serialNumber: string;
+  beneficiaryName: string;
+  projectTitle: string;
+  location: string;
+  verifier: string;
+  co2RetiredKg: number;
+  creditsRetired: number;
+  issueDate: string;
+  verificationHash: string;
+  status: 'ACTIVE_RETIRED' | 'VERIFIED';
+}

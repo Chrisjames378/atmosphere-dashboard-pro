@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { Coins, ShieldCheck, ArrowUpRight, ArrowDownLeft, TreePine, Award, Filter, DollarSign, ExternalLink, CheckCircle, Sparkles } from 'lucide-react';
+import { Coins, ShieldCheck, ArrowUpRight, ArrowDownLeft, TreePine, Award, Filter, DollarSign, ExternalLink, CheckCircle, Sparkles, TrendingUp, BarChart3, FileText, QrCode } from 'lucide-react';
 import { OFFSET_PROJECTS } from '../data/mockData';
-import { CarbonTransaction, OffsetProject } from '../types';
+import { CarbonTransaction, OffsetProject, CarbonCertificate } from '../types';
 import { PaymentGateway } from './PaymentGateway';
+import { CarbonCertificateModal } from './CarbonCertificateModal';
 
 interface CarbonExchangeProps {
   creditsBalance: number;
@@ -23,12 +24,33 @@ export const CarbonExchange: React.FC<CarbonExchangeProps> = ({
   const [certificateSuccess, setCertificateSuccess] = useState<string | null>(null);
   const [buySellModal, setBuySellModal] = useState<'buy' | 'sell' | null>(null);
   const [tradeCredits, setTradeCredits] = useState<number>(50);
+  const [activeCertificate, setActiveCertificate] = useState<CarbonCertificate | null>(null);
 
   const filteredTransactions = transactions.filter((tx) => {
     if (filterType === 'earn') return tx.type === 'earn' || tx.type === 'buy';
     if (filterType === 'redeem') return tx.type === 'redeem' || tx.type === 'sell';
     return true;
   });
+
+  const generateCertificateObj = (projectTitle: string, creditsAmount: number, verifier: string = 'Verra VCS / Gold Standard', location: string = 'Global Registry') => {
+    const certId = 'CERT-' + Math.random().toString(36).substring(2, 9).toUpperCase();
+    const serialNumber = 'ATM-2026-VCS-' + Math.floor(100000 + Math.random() * 900000);
+    const hashStr = Array.from({ length: 32 }, () => Math.floor(Math.random() * 16).toString(16)).join('');
+
+    return {
+      certificateId: certId,
+      serialNumber,
+      beneficiaryName: 'Verified Atmosphere Account Holder',
+      projectTitle,
+      location,
+      verifier,
+      co2RetiredKg: creditsAmount * 100,
+      creditsRetired: creditsAmount,
+      issueDate: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }),
+      verificationHash: `0x${hashStr}`,
+      status: 'ACTIVE_RETIRED' as const,
+    };
+  };
 
   const handleFundProject = (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,11 +63,18 @@ export const CarbonExchange: React.FC<CarbonExchangeProps> = ({
     );
 
     if (success) {
+      const cert = generateCertificateObj(
+        selectedProject.title,
+        purchaseAmount * selectedProject.pricePerCredit,
+        selectedProject.verifier,
+        selectedProject.location
+      );
+      setActiveCertificate(cert);
       setCertificateSuccess(
         `Successfully retired ${purchaseAmount * 100} kg CO₂e for "${selectedProject.title}"! Verified Certificate Generated.`
       );
       setSelectedProject(null);
-      setTimeout(() => setCertificateSuccess(null), 5000);
+      setTimeout(() => setCertificateSuccess(null), 6000);
     } else {
       alert(`Insufficient Carbon Credits! You need ${totalCost} credits, but have ${creditsBalance}.`);
     }
@@ -255,6 +284,7 @@ export const CarbonExchange: React.FC<CarbonExchangeProps> = ({
                 <th className="py-3 px-4">Amount</th>
                 <th className="py-3 px-4">Timestamp</th>
                 <th className="py-3 px-4">Details</th>
+                <th className="py-3 px-4 text-right">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800/60">
@@ -282,6 +312,18 @@ export const CarbonExchange: React.FC<CarbonExchangeProps> = ({
                   </td>
                   <td className="py-3.5 px-4 text-slate-400 font-mono text-[11px]">{tx.date}</td>
                   <td className="py-3.5 px-4 text-slate-400">{tx.details}</td>
+                  <td className="py-3.5 px-4 text-right">
+                    <button
+                      onClick={() => {
+                        const cert = generateCertificateObj(tx.title, Math.abs(tx.amount));
+                        setActiveCertificate(cert);
+                      }}
+                      className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 text-[11px] font-semibold rounded-lg border border-slate-700 transition inline-flex items-center gap-1"
+                    >
+                      <FileText className="w-3 h-3 text-emerald-400" />
+                      <span>Certificate</span>
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -425,6 +467,14 @@ export const CarbonExchange: React.FC<CarbonExchangeProps> = ({
             </form>
           </div>
         </div>
+      )}
+
+      {/* Carbon Certificate Modal */}
+      {activeCertificate && (
+        <CarbonCertificateModal
+          certificate={activeCertificate}
+          onClose={() => setActiveCertificate(null)}
+        />
       )}
 
     </div>

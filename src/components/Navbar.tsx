@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { CloudSun, Coins, Satellite, BarChart3, Bot, Search, MapPin, RefreshCw, LayoutDashboard } from 'lucide-react';
+import { CloudSun, Coins, Satellite, BarChart3, Bot, Search, MapPin, RefreshCw, LayoutDashboard, Radio, Bell, Download, Share2, Sliders } from 'lucide-react';
 import { INITIAL_PRESET_LOCATIONS } from '../data/mockData';
 
 interface NavbarProps {
@@ -10,6 +10,11 @@ interface NavbarProps {
   onLocationChange: (loc: string) => void;
   onRefreshTelemetry: () => void;
   isRefreshing: boolean;
+  isLiveStream: boolean;
+  onToggleLiveStream: () => void;
+  onOpenThresholds: () => void;
+  onOpenExport: () => void;
+  onOpenNotifications: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -20,6 +25,11 @@ export const Navbar: React.FC<NavbarProps> = ({
   onLocationChange,
   onRefreshTelemetry,
   isRefreshing,
+  isLiveStream,
+  onToggleLiveStream,
+  onOpenThresholds,
+  onOpenExport,
+  onOpenNotifications,
 }) => {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [customInput, setCustomInput] = useState('');
@@ -51,7 +61,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 Atmosphere Dashboard Pro
               </h1>
               <span className="px-2 py-0.5 bg-indigo-500/20 text-indigo-300 text-[10px] font-bold rounded-full border border-indigo-500/30">
-                v2.4 Live
+                v2.5
               </span>
             </div>
             <p className="text-xs text-slate-400">Next-Gen Environmental, Satellite & Carbon Telemetry</p>
@@ -109,6 +119,49 @@ export const Navbar: React.FC<NavbarProps> = ({
               </div>
             )}
           </div>
+
+          {/* Live Stream Toggle Button */}
+          <button
+            onClick={onToggleLiveStream}
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition border flex items-center gap-1.5 ${
+              isLiveStream
+                ? 'bg-rose-950/80 text-rose-300 border-rose-500/50 shadow-md shadow-rose-950/50'
+                : 'bg-slate-900/80 text-slate-400 border-slate-700/80 hover:text-slate-200'
+            }`}
+            title="Toggle Live Stream Auto-Refresh"
+          >
+            <span className={`w-2 h-2 rounded-full ${isLiveStream ? 'bg-rose-500 animate-ping' : 'bg-slate-500'}`} />
+            <Radio className="w-3.5 h-3.5" />
+            <span>{isLiveStream ? 'LIVE 5s' : 'Live Stream'}</span>
+          </button>
+
+          {/* Browser Notifications & Reminders Button */}
+          <button
+            onClick={onOpenNotifications}
+            className="p-2 bg-slate-900/80 hover:bg-slate-800/80 border border-slate-700/80 text-emerald-400 rounded-xl transition flex items-center justify-center relative"
+            title="Browser Reminders & Web Notifications"
+          >
+            <Bell className="w-4 h-4" />
+            <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-emerald-500 rounded-full animate-pulse" />
+          </button>
+
+          {/* Alert Thresholds Settings Button */}
+          <button
+            onClick={onOpenThresholds}
+            className="p-2 bg-slate-900/80 hover:bg-slate-800/80 border border-slate-700/80 text-amber-400 rounded-xl transition flex items-center justify-center"
+            title="Configure Alert Thresholds"
+          >
+            <Sliders className="w-4 h-4" />
+          </button>
+
+          {/* Export & Share Button */}
+          <button
+            onClick={onOpenExport}
+            className="p-2 bg-slate-900/80 hover:bg-slate-800/80 border border-slate-700/80 text-sky-400 rounded-xl transition flex items-center justify-center"
+            title="Export Telemetry & Share"
+          >
+            <Share2 className="w-4 h-4" />
+          </button>
 
           {/* Refresh Telemetry */}
           <button
