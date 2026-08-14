@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { Analytics } from '@vercel/analytics/react';
 import { Navbar } from './components/Navbar';
 import { WeatherCard } from './components/WeatherCard';
 import { AirQualityCard } from './components/AirQualityCard';
@@ -318,6 +319,9 @@ export default function App() {
 
       {/* Footer */}
       <Footer />
+
+      {/* Vercel Web Analytics */}
+      <Analytics />
 
     </div>
   );
